@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Sparkles, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { EmptyState } from "./EmptyState";
@@ -164,10 +164,11 @@ export function ChatShell() {
           className="-m-1 flex items-center gap-3 rounded-lg p-1 transition hover:bg-primary/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Image
-            src="/dvsh-logo.svg"
+            src="/dvsh-logo.webp"
             alt="Dryer Vent Superheroes"
-            width={100}
-            height={46}
+            width={52}
+            height={44}
+            className="h-11 w-auto"
             priority
           />
           <div className="leading-tight text-left">
@@ -180,10 +181,6 @@ export function ChatShell() {
           </div>
         </button>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span className="hidden items-center gap-1.5 sm:inline-flex">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            Live pricing
-          </span>
           <a
             href="tel:+16156322980"
             className="hidden hover:text-foreground sm:inline"

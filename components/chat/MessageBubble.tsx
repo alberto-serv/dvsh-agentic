@@ -140,14 +140,13 @@ function UIMomentCard({
 
 function Avatar() {
   return (
-    <div className="relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary shadow-[0_4px_14px_-2px_rgba(21,38,68,0.4)] ring-2 ring-[#00dbe6]/25 ring-offset-2 ring-offset-background">
-      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary to-secondary" />
+    <div className="relative mt-0.5 h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white shadow-[0_4px_14px_-2px_rgba(21,38,68,0.35)] ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
       <Image
-        src="/dvsh-v.svg"
+        src="/dvsh-avatar.png"
         alt=""
-        width={32}
-        height={32}
-        className="relative h-6 w-6 object-contain drop-shadow-[0_0_6px_rgba(0,219,230,0.55)]"
+        fill
+        sizes="44px"
+        className="object-cover"
       />
     </div>
   );

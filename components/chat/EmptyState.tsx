@@ -21,10 +21,11 @@ export function EmptyState({ onSuggestion, disabled }: Props) {
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col justify-center gap-10 px-6 py-12 sm:px-8">
       <div className="space-y-4">
         <Image
-          src="/dvsh-logo.svg"
+          src="/dvsh-logo.webp"
           alt="Dryer Vent Superheroes"
-          width={150}
-          height={70}
+          width={128}
+          height={107}
+          className="h-24 w-auto"
           priority
         />
         <p className="font-heading text-xs font-semibold uppercase tracking-[0.18em] text-primary">

@@ -120,10 +120,11 @@ export default function CheckoutPage() {
       <header className="flex items-center justify-between border-b border-border bg-background px-6 py-4">
         <Link href="/" className="flex items-center gap-3">
           <Image
-            src="/dvsh-logo.svg"
+            src="/dvsh-logo.webp"
             alt="Dryer Vent Superheroes"
-            width={100}
-            height={46}
+            width={56}
+            height={47}
+            className="h-12 w-auto"
             priority
           />
         </Link>
