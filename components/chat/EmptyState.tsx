@@ -66,8 +66,7 @@ export function EmptyState({ onSuggestion, disabled }: Props) {
             Let&rsquo;s clear the air.
           </h1>
           <p className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-[#6f6a5f] sm:text-lg">
-            Ask anything or pick a service. Real answers, honest pricing. No
-            phone call required.
+            Ask anything or pick a service. Real answers, honest pricing.
           </p>
         </div>
 
