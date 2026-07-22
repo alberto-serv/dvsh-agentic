@@ -52,7 +52,7 @@ export function EmptyState({ onSuggestion, disabled }: Props) {
               onClick={() => onSuggestion(s)}
               className="group rounded-xl border border-border bg-card px-4 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
             >
-              <span className="font-heading text-[15px] font-semibold tracking-tight text-foreground">
+              <span className="block text-balance font-heading text-[15px] font-semibold tracking-tight text-foreground">
                 {s}
               </span>
             </button>
