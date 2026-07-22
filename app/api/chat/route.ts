@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MODEL = "claude-sonnet-4-6";
-const MAX_TOKENS = 1024;
+const MAX_TOKENS = 2048;
 
 let cachedSystemTemplate: string | null = null;
 

@@ -8,11 +8,11 @@ interface Props {
 }
 
 const SUGGESTIONS = [
-  "Dryer Vent Cleaning",
+  "My clothes take two cycles to dry",
+  "How often should vents be cleaned?",
+  "What does a cleaning include?",
   "Dryer Vent Special",
   "AC Duct Cleaning",
-  "Coil Cleaning",
-  "Bathroom Fan Cleaning",
   "Whole-Home Air Package",
 ];
 
@@ -32,8 +32,11 @@ export function EmptyState({ onSuggestion, disabled }: Props) {
           Booking Assistant
         </p>
         <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          What can we clean out for you today?
+          What&apos;s going on with your dryer?
         </h1>
+        <p className="text-sm text-muted-foreground">
+          Ask a question or pick a service — real answers, real prices.
+        </p>
       </div>
 
       <div className="space-y-3">
