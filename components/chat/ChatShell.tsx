@@ -152,10 +152,18 @@ export function ChatShell() {
   );
 
   const inputDisabled = isStreaming || !agentMdRaw;
+  // Start page uses the full light-blue backdrop; the chat view stays on the neutral background.
+  const isStart = messages.length === 0 && !agentLoadError;
 
   return (
-    <div className="flex h-dvh flex-col bg-background">
-      <header className="flex items-center justify-between border-b border-border bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <div className={`flex h-dvh flex-col ${isStart ? "bg-[#eaf1fc]" : "bg-background"}`}>
+      <header
+        className={`flex items-center justify-between px-6 py-4 ${
+          isStart
+            ? "border-b border-transparent"
+            : "border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+        }`}
+      >
         <button
           type="button"
           onClick={handleNewChat}
@@ -231,6 +239,7 @@ export function ChatShell() {
           onChange={setInput}
           onSubmit={() => sendMessage(input)}
           disabled={inputDisabled}
+          transparent={isStart}
         />
       </main>
     </div>

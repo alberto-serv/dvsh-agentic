@@ -9,9 +9,16 @@ interface Props {
   onChange: (v: string) => void;
   onSubmit: () => void;
   disabled?: boolean;
+  transparent?: boolean;
 }
 
-export function ChatInput({ value, onChange, onSubmit, disabled }: Props) {
+export function ChatInput({
+  value,
+  onChange,
+  onSubmit,
+  disabled,
+  transparent,
+}: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -39,9 +46,21 @@ export function ChatInput({ value, onChange, onSubmit, disabled }: Props) {
         e.preventDefault();
         if (!disabled && value.trim()) onSubmit();
       }}
-      className="border-t border-border bg-background px-4 py-4 sm:px-8"
+      className={cn(
+        "px-4 py-4 sm:px-8",
+        transparent
+          ? "bg-transparent"
+          : "border-t border-border bg-background",
+      )}
     >
-      <div className="mx-auto flex max-w-3xl items-end gap-2.5 rounded-2xl border border-border bg-surface px-4 py-3 shadow-sm transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15">
+      <div
+        className={cn(
+          "mx-auto flex max-w-3xl items-end gap-2.5 rounded-2xl border px-4 py-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15",
+          transparent
+            ? "border-[#e2d9c9] bg-white shadow-[0_12px_30px_-16px_rgba(20,24,29,0.22)]"
+            : "border-border bg-surface shadow-sm",
+        )}
+      >
         <textarea
           ref={textareaRef}
           rows={1}

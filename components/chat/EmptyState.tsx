@@ -43,12 +43,12 @@ const mono = "font-[family-name:var(--font-geist-mono)]";
 export function EmptyState({ onSuggestion, disabled }: Props) {
   return (
     <div
-      className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-8 sm:py-12"
+      className="mx-auto w-full max-w-5xl px-6 py-10 sm:px-8 sm:py-14"
       style={{ fontFamily: "var(--font-geist-sans)" }}
     >
-      <div className="overflow-hidden rounded-3xl border border-[#d3e2f6] bg-[#eaf1fc] shadow-[0_40px_90px_-40px_rgba(20,24,29,0.35)]">
+      <div>
         {/* hero */}
-        <div className="flex flex-col items-center px-6 pt-12 text-center sm:px-16 sm:pt-14">
+        <div className="flex flex-col items-center pt-2 text-center sm:pt-4">
           <Image
             src="/dvsh-logo.webp"
             alt="Dryer Vent Superheroes mascot"
@@ -72,7 +72,7 @@ export function EmptyState({ onSuggestion, disabled }: Props) {
         </div>
 
         {/* common questions */}
-        <div className="px-6 pt-10 sm:px-14">
+        <div className="pt-10">
           <p
             className={`${mono} mb-3.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#a39a8a]`}
           >
@@ -97,7 +97,7 @@ export function EmptyState({ onSuggestion, disabled }: Props) {
         </div>
 
         {/* popular services */}
-        <div className="px-6 pb-12 pt-6 sm:px-14 sm:pb-14">
+        <div className="pt-7">
           <p
             className={`${mono} mb-3.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7d8595]`}
           >
