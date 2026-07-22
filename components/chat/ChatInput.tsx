@@ -55,10 +55,10 @@ export function ChatInput({
     >
       <div
         className={cn(
-          "mx-auto flex max-w-3xl items-end gap-2.5 rounded-2xl border px-4 py-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15",
+          "mx-auto flex gap-3 border transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15",
           transparent
-            ? "border-[#e2d9c9] bg-white shadow-[0_12px_30px_-16px_rgba(20,24,29,0.22)]"
-            : "border-border bg-surface shadow-sm",
+            ? "max-w-5xl items-center rounded-full border-[#e2d9c9] bg-white py-2 pl-7 pr-2 shadow-[0_14px_34px_-16px_rgba(20,24,29,0.28)]"
+            : "max-w-3xl items-end rounded-2xl border-border bg-surface px-4 py-3 shadow-sm",
         )}
       >
         <textarea
@@ -68,24 +68,43 @@ export function ChatInput({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKey}
           disabled={disabled}
-          placeholder="Tell me what you need cleaned…"
-          className="flex-1 resize-none bg-transparent py-1 text-[15px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-60"
+          placeholder={
+            transparent
+              ? "Tell us what needs cleaning…"
+              : "Tell me what you need cleaned…"
+          }
+          className={cn(
+            "flex-1 resize-none bg-transparent text-foreground outline-none disabled:opacity-60",
+            transparent
+              ? "py-1.5 text-[17px] placeholder:text-[#a89f8f]"
+              : "py-1 text-[15px] leading-relaxed placeholder:text-muted-foreground",
+          )}
         />
         <button
           type="submit"
           disabled={disabled || !value.trim()}
           className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
-            "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary",
+            "flex shrink-0 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40",
+            transparent
+              ? "h-12 w-12 bg-[#1d61c4] text-white hover:bg-[#164da3] disabled:hover:bg-[#1d61c4]"
+              : "h-9 w-9 bg-primary text-primary-foreground hover:bg-primary/90 disabled:hover:bg-primary",
           )}
           aria-label="Send"
         >
-          <ArrowUp className="h-4 w-4" />
+          <ArrowUp className={transparent ? "h-5 w-5" : "h-4 w-4"} />
         </button>
       </div>
-      <p className="mx-auto mt-2 max-w-3xl text-center text-[11px] text-muted-foreground">
-        Dryer Vent Superheroes AI can make mistakes.
+      <p
+        className={cn(
+          "mx-auto mt-3 text-center",
+          transparent
+            ? "max-w-5xl text-[12.5px] text-[#a89f8f]"
+            : "max-w-3xl text-[11px] text-muted-foreground",
+        )}
+      >
+        {transparent
+          ? "Superheroes AI can make mistakes — confirm important details before booking."
+          : "Dryer Vent Superheroes AI can make mistakes."}
       </p>
     </form>
   );
