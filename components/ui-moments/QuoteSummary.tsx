@@ -29,7 +29,7 @@ export function QuoteSummary({ data }: Props) {
                 className={cn(
                   "flex items-start justify-between gap-4",
                   isDiscount
-                    ? "pl-3 text-[#0099a3]"
+                    ? "pl-3 text-emerald-600"
                     : "text-foreground/90",
                 )}
               >

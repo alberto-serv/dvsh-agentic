@@ -57,7 +57,7 @@ export function ChatInput({ value, onChange, onSubmit, disabled }: Props) {
           disabled={disabled || !value.trim()}
           className={cn(
             "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition",
-            "bg-primary text-primary-foreground hover:bg-secondary",
+            "bg-primary text-primary-foreground hover:bg-primary/90",
             "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary",
           )}
           aria-label="Send"

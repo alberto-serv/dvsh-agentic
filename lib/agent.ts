@@ -101,7 +101,7 @@ export function parseAgentMd(raw: string): AgentData {
       name: "Dryer Vent Superheroes",
       phone: "(615) 632-2980",
       timezone: "America/Chicago",
-      bookingUrl: "/checkout",
+      bookingUrl: "/estimate/payment",
       taxRate: servicesJson.tax_rate ?? 0.0825,
     },
   };

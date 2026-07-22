@@ -53,22 +53,40 @@ export interface BookingHandoffData {
     services: string;
     slot: string;
     total: number;
-    // Optional itemized breakdown so the checkout page can render line items.
+    // Optional itemized breakdown so the review card can show line items.
     lines?: QuoteLine[];
-    // Optional annual-plan / renewal footnote carried through to checkout.
+    // Optional annual-plan / renewal footnote.
     note?: string;
   };
+  // Structured selection written to localStorage("estimateData") and consumed
+  // by /estimate/payment, which recomputes pricing exactly like the storefront.
+  order?: CheckoutOrder;
   booking_url: string;
 }
 
-// Shape persisted to localStorage when the customer continues to /checkout.
-export interface CheckoutHandoff {
-  services: string;
-  slot: string;
-  total: number;
-  lines?: QuoteLine[];
-  note?: string;
-  taxRate: number;
+// Storefront-shaped estimate data the /estimate/payment page reads.
+export interface CheckoutOrder {
+  services: {
+    selectedServices: string[];
+    dryerVentAccessType?: string;
+    ductCount?: number;
+    bundleAccessType?: string;
+    bundleVentCount?: number;
+    bundlePrice?: number;
+    specialAccessType?: string;
+    wholeHomeDuctCount?: number;
+    wholeHomePrice?: number;
+    serviceFrequencies?: Record<string, "none" | "annual">;
+    selectedCheckoutAddOns?: string[];
+  };
+  customer: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    preferredDate?: string;
+    timeWindow?: string;
+  };
 }
 
 export interface TierOption {
@@ -108,6 +126,19 @@ export interface RecurrencePickerData {
   options: RecurrenceOption[];
 }
 
+export interface AddonOption {
+  key: string;
+  name: string;
+  price: number;
+  price_label?: string;
+  description?: string;
+}
+
+export interface AddonPickerData {
+  prompt?: string;
+  options: AddonOption[];
+}
+
 export type UIMoment =
   | { component: "quote_summary"; data: QuoteSummaryData }
   | { component: "slot_picker"; data: SlotPickerData }
@@ -115,4 +146,5 @@ export type UIMoment =
   | { component: "tier_picker"; data: TierPickerData }
   | { component: "date_picker"; data: DatePickerData }
   | { component: "contact_form"; data: ContactFormData }
-  | { component: "recurrence_picker"; data: RecurrencePickerData };
+  | { component: "recurrence_picker"; data: RecurrencePickerData }
+  | { component: "addon_picker"; data: AddonPickerData };

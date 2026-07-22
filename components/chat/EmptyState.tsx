@@ -25,7 +25,7 @@ export function EmptyState({ onSuggestion, disabled }: Props) {
           alt="Dryer Vent Superheroes"
           width={128}
           height={107}
-          className="h-24 w-auto"
+          className="mx-auto block h-24 w-auto"
           priority
         />
         <p className="font-heading text-xs font-semibold uppercase tracking-[0.18em] text-primary">

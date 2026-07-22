@@ -11,6 +11,7 @@ import { TierPicker } from "@/components/ui-moments/TierPicker";
 import { DatePicker } from "@/components/ui-moments/DatePicker";
 import { ContactForm } from "@/components/ui-moments/ContactForm";
 import { RecurrencePicker } from "@/components/ui-moments/RecurrencePicker";
+import { AddonPicker } from "@/components/ui-moments/AddonPicker";
 import type { AgentSlot, UIMoment } from "@/lib/types";
 
 interface Props {
@@ -128,6 +129,14 @@ function UIMomentCard({
     case "recurrence_picker":
       return (
         <RecurrencePicker
+          data={moment.data}
+          onSelect={onChoice}
+          disabled={disabled}
+        />
+      );
+    case "addon_picker":
+      return (
+        <AddonPicker
           data={moment.data}
           onSelect={onChoice}
           disabled={disabled}

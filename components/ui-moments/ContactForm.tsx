@@ -141,7 +141,7 @@ export function ContactForm({ data, onSubmit, disabled }: Props) {
         disabled={isLocked}
         className={cn(
           "mt-5 w-full rounded-lg bg-primary px-4 py-3 font-heading text-sm font-semibold uppercase tracking-wider text-primary-foreground transition",
-          "hover:bg-secondary",
+          "hover:bg-primary/90",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           isLocked && "cursor-not-allowed opacity-60",
         )}

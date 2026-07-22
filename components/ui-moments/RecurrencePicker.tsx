@@ -81,7 +81,7 @@ export function RecurrencePicker({ data, onSelect, disabled }: Props) {
                       {option.label}
                     </span>
                     {option.discount_percent > 0 && (
-                      <span className="inline-block bg-[#00dbe6]/15 px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums tracking-wider text-[#0099a3]">
+                      <span className="inline-block bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums tracking-wider text-emerald-600">
                         SAVE {option.discount_percent}%
                       </span>
                     )}

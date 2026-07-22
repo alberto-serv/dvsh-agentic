@@ -4,10 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ShieldCheck, Phone, CalendarClock } from "lucide-react";
 import { cn, formatUSD } from "@/lib/utils";
-import type { BookingHandoffData, CheckoutHandoff } from "@/lib/types";
+import type { BookingHandoffData } from "@/lib/types";
 
-const CHECKOUT_KEY = "dvsh-checkout";
-const TAX_RATE = 0.0825;
+const ESTIMATE_KEY = "estimateData";
 
 interface Props {
   data: BookingHandoffData;
@@ -22,22 +21,14 @@ export function BookingHandoff({ data }: Props) {
   function handleContinue() {
     if (leaving) return;
     setLeaving(true);
-    const payload: CheckoutHandoff = {
-      services: summary.services,
-      slot: summary.slot,
-      total: summary.total,
-      lines: summary.lines,
-      note: summary.note,
-      taxRate: TAX_RATE,
-    };
     try {
-      window.localStorage.setItem(CHECKOUT_KEY, JSON.stringify(payload));
+      if (data.order) {
+        window.localStorage.setItem(ESTIMATE_KEY, JSON.stringify(data.order));
+      }
     } catch {
-      // If storage is unavailable, the checkout page falls back to query params.
+      // If storage is unavailable, the payment page shows its empty state.
     }
-    const url = data.booking_url || "/checkout";
-    const sep = url.includes("?") ? "&" : "?";
-    router.push(`${url}${sep}total=${encodeURIComponent(summary.total)}`);
+    router.push(data.booking_url || "/estimate/payment");
   }
 
   return (
@@ -69,7 +60,7 @@ export function BookingHandoff({ data }: Props) {
                     key={i}
                     className={cn(
                       "flex items-start justify-between gap-4",
-                      isDiscount ? "pl-3 text-[#0099a3]" : "text-foreground/90",
+                      isDiscount ? "pl-3 text-emerald-600" : "text-foreground/90",
                     )}
                   >
                     <span className="leading-snug">{line.label}</span>
@@ -106,7 +97,7 @@ export function BookingHandoff({ data }: Props) {
           disabled={leaving}
           className={cn(
             "flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3.5 font-heading text-sm font-semibold uppercase tracking-wider text-primary-foreground transition",
-            "hover:bg-secondary",
+            "hover:bg-primary/90",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}

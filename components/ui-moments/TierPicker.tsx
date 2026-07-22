@@ -96,7 +96,7 @@ export function TierPicker({ data, onSelect, disabled }: Props) {
                         {option.label}
                       </span>
                       {option.most_popular && (
-                        <span className="inline-block bg-[#00dbe6]/15 px-1.5 py-0.5 text-[8.5px] font-bold uppercase leading-tight tracking-wider text-[#0099a3]">
+                        <span className="inline-block bg-primary/10 px-1.5 py-0.5 text-[8.5px] font-bold uppercase leading-tight tracking-wider text-primary">
                           Most Popular
                         </span>
                       )}
@@ -126,12 +126,12 @@ export function TierPicker({ data, onSelect, disabled }: Props) {
                           >
                             {isIncremental && idx > 0 ? (
                               <Plus
-                                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#00dbe6]"
+                                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
                                 strokeWidth={2.5}
                               />
                             ) : (
                               <Check
-                                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#00dbe6]"
+                                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
                                 strokeWidth={2.5}
                               />
                             )}

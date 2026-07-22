@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import { Outfit, Barlow } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-outfit",
-  display: "swap",
-});
-
-const barlow = Barlow({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-barlow",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -27,11 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${outfit.variable} ${barlow.variable} h-full antialiased`}
-    >
-      <body className="h-full bg-background text-foreground">{children}</body>
+    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+      <body className="h-full bg-background text-foreground font-sans">
+        {children}
+      </body>
     </html>
   );
 }
