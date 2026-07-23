@@ -79,6 +79,29 @@ export function getServiceBasePrice(order: OrderServices, serviceId: string): nu
   return service.basePrice
 }
 
+// The three services the Whole-Home Air Package is made of. A customer who has
+// ticked all three individually is paying list price for what the package sells
+// at 15% off, so we surface the comparison rather than quietly overcharging.
+const WHOLE_HOME_COMPONENTS = ["ac-duct-cleaning", "coil-cleaning", "bathroom-fan"]
+
+export function getWholeHomeUpgrade(
+  order: OrderServices,
+): { packagePrice: number; savings: number } | null {
+  const selected = order?.selectedServices ?? []
+  if (selected.includes("whole-home-air")) return null
+  if (!WHOLE_HOME_COMPONENTS.every((id) => selected.includes(id))) return null
+
+  // Compare list prices on both sides — an apples-to-apples bundle comparison
+  // that doesn't shift with whatever annual frequencies are set.
+  const individual = WHOLE_HOME_COMPONENTS.reduce(
+    (sum, id) => sum + getServiceBasePrice(order, id),
+    0,
+  )
+  const packagePrice = computeWholeHome(order?.ductCount ?? 10)
+  const savings = individual - packagePrice
+  return savings > 0 ? { packagePrice, savings } : null
+}
+
 export type OrderPricingLine = {
   serviceId?: string
   addonId?: string

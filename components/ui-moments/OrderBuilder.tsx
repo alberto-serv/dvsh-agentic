@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { Check, Minus, Plus, RotateCw } from "lucide-react";
 import { cn, formatUSD } from "@/lib/utils";
-import { computeOrderPricing, SERVICE_CATALOG } from "@/lib/pricing";
+import {
+  computeOrderPricing,
+  getServiceBasePrice,
+  getWholeHomeUpgrade,
+  SERVICE_CATALOG,
+} from "@/lib/pricing";
 import { isRecurringEligible } from "@/lib/service-frequency";
 import type {
   CheckoutOrder,
@@ -47,7 +52,7 @@ export function OrderBuilder({
 
   const hasAccess = !!data.access_options?.length;
   const hasDucts = !!data.needs_duct_count;
-  const recurring = isRecurringEligible(service_id);
+  const suggested = data.suggested_services ?? [];
 
   const specialInOrder =
     service_id === "dryer-vent-special" ||
@@ -57,8 +62,12 @@ export function OrderBuilder({
   );
   const hasAddons = addonOptions.length > 0;
 
-  const [access, setAccess] = useState<string | undefined>(
-    data.access_options?.[0]?.key,
+  // Only preselect what the customer actually told us. If they haven't said,
+  // nothing is ticked and the confirm button stays gated until they choose.
+  const [access, setAccess] = useState<string | undefined>(() =>
+    data.access_options?.some((o) => o.key === data.access_type)
+      ? data.access_type
+      : undefined,
   );
   const [ductCount, setDuctCount] = useState<number>(
     data.duct_count && data.duct_count >= MIN_DUCTS
@@ -66,6 +75,7 @@ export function OrderBuilder({
       : DEFAULT_DUCTS,
   );
   const [addonKeys, setAddonKeys] = useState<Set<string>>(new Set());
+  const [extraServices, setExtraServices] = useState<Set<string>>(new Set());
   const [annual, setAnnual] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -75,17 +85,27 @@ export function OrderBuilder({
     access?: string;
     ductCount?: number;
     addonKeys?: Set<string>;
+    extraServices?: Set<string>;
     annual?: boolean;
   }): Partial<OrderServices> {
     const access_ = over?.access ?? access;
     const ducts_ = over?.ductCount ?? ductCount;
     const addons_ = over?.addonKeys ?? addonKeys;
+    const extras_ = over?.extraServices ?? extraServices;
     const annual_ = over?.annual ?? annual;
 
     const base = order.selectedServices ?? [];
-    const selectedServices = Array.from(
-      new Set([...base, service_id, ...(data.add_services ?? [])]),
-    );
+    const ids = new Set([
+      ...base,
+      service_id,
+      ...(data.add_services ?? []),
+    ]);
+    // The card owns the suggested toggles, so unticking one removes it again.
+    for (const s of suggested) {
+      if (extras_.has(s)) ids.add(s);
+      else ids.delete(s);
+    }
+    const selectedServices = Array.from(ids);
 
     const partial: Partial<OrderServices> = { selectedServices };
 
@@ -106,14 +126,17 @@ export function OrderBuilder({
       partial.selectedCheckoutAddOns = Array.from(addons_);
     }
 
-    if (recurring) {
+    const recurringIds = selectedServices.filter(isRecurringEligible);
+    if (recurringIds.length > 0) {
       const freq: "annual" | "none" = annual_ ? "annual" : "none";
       const frequencies: Record<string, "annual" | "none"> = {
         ...order.serviceFrequencies,
       };
-      for (const id of selectedServices.filter(isRecurringEligible)) {
-        frequencies[id] = freq;
+      // Drop frequencies for services no longer in the order.
+      for (const id of Object.keys(frequencies)) {
+        if (!selectedServices.includes(id)) delete frequencies[id];
       }
+      for (const id of recurringIds) frequencies[id] = freq;
       partial.serviceFrequencies = frequencies;
     }
 
@@ -125,6 +148,12 @@ export function OrderBuilder({
   const draftOrder: OrderServices = { ...order, ...draftPartial };
   const pricing = computeOrderPricing(draftOrder);
   const configTotal = Math.round(pricing.discountedSubtotal + pricing.addonsTotal);
+  // The annual plan applies once any recurring-eligible service is in the order
+  // — including one the customer just ticked from the suggestions.
+  const recurring = (draftPartial.selectedServices ?? []).some(
+    isRecurringEligible,
+  );
+  const wholeHomeUpgrade = getWholeHomeUpgrade(draftOrder);
 
   function mirror(over?: Parameters<typeof buildPartial>[0]) {
     if (disabled) return;
@@ -151,6 +180,15 @@ export function OrderBuilder({
     mirror({ ductCount: next });
   }
 
+  function toggleExtraService(id: string) {
+    if (disabled) return;
+    const next = new Set(extraServices);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setExtraServices(next);
+    mirror({ extraServices: next });
+  }
+
   function toggleAddon(key: string) {
     if (disabled) return;
     const next = new Set(addonKeys);
@@ -169,11 +207,15 @@ export function OrderBuilder({
 
   function handleConfirm() {
     if (disabled || confirmed) return;
+    if (hasAccess && !access) return;
     setConfirmed(true);
 
     const bits: string[] = [];
     const accessOption = data.access_options?.find((o) => o.key === access);
     if (accessOption) bits.push(accessOption.label);
+    for (const id of suggested) {
+      if (extraServices.has(id)) bits.push(serviceName(id));
+    }
     for (const opt of addonOptions) {
       if (addonKeys.has(opt.key)) bits.push(opt.name);
     }
@@ -184,6 +226,8 @@ export function OrderBuilder({
   }
 
   const locked = disabled || confirmed;
+  // Can't confirm an access-priced service until an access type is actually chosen.
+  const needsAccess = hasAccess && !access;
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -341,6 +385,55 @@ export function OrderBuilder({
           </Section>
         )}
 
+        {/* Complementary services the customer can add */}
+        {suggested.length > 0 && (
+          <Section label="Add more services">
+            <div className="overflow-hidden rounded-lg border border-border">
+              <ul className="divide-y divide-border">
+                {suggested.map((id) => {
+                  const isOn = extraServices.has(id);
+                  return (
+                    <li key={id}>
+                      <button
+                        type="button"
+                        disabled={locked}
+                        onClick={() => toggleExtraService(id)}
+                        className={cn(
+                          "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
+                          isOn ? "bg-primary/[0.04]" : "hover:bg-muted/60",
+                          locked && "cursor-not-allowed opacity-60",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors",
+                            isOn
+                              ? "border-primary bg-primary"
+                              : "border-border bg-background",
+                          )}
+                        >
+                          {isOn && (
+                            <Check
+                              className="h-3 w-3 text-primary-foreground"
+                              strokeWidth={3}
+                            />
+                          )}
+                        </span>
+                        <span className="flex-1 font-heading text-[15px] font-semibold text-foreground">
+                          {serviceName(id)}
+                        </span>
+                        <span className="shrink-0 font-mono text-sm tabular-nums text-foreground/80">
+                          {formatUSD(getServiceBasePrice(draftOrder, id))}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </Section>
+        )}
+
         {/* Annual plan */}
         {recurring && (
           <button
@@ -424,6 +517,13 @@ export function OrderBuilder({
               Annual plan — 15% off, save {formatUSD(pricing.subscriptionDiscount)}/yr
             </p>
           )}
+          {wholeHomeUpgrade && (
+            <p className="mt-2 rounded-md bg-primary/[0.06] px-2.5 py-2 text-xs leading-relaxed text-primary">
+              These three are the <span className="font-semibold">Whole-Home Air Package</span> —
+              bundled it&apos;s {formatUSD(wholeHomeUpgrade.packagePrice)}, saving{" "}
+              {formatUSD(wholeHomeUpgrade.savings)}. Just ask and we&apos;ll switch it.
+            </p>
+          )}
           {pricing.notes.map((note, i) => (
             <p key={i} className="mt-1 text-xs text-muted-foreground">
               {note}
@@ -436,7 +536,7 @@ export function OrderBuilder({
 
         <button
           type="button"
-          disabled={locked}
+          disabled={locked || needsAccess}
           onClick={handleConfirm}
           className={cn(
             "flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3.5 font-heading text-sm font-semibold uppercase tracking-wider text-primary-foreground transition",
@@ -445,7 +545,11 @@ export function OrderBuilder({
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}
         >
-          {confirmed ? "Locked in" : "Looks good — pick a time"}
+          {confirmed
+            ? "Locked in"
+            : needsAccess
+              ? "Choose an access type"
+              : "Looks good — pick a time"}
         </button>
       </div>
     </div>

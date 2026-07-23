@@ -18,6 +18,21 @@ import type { AgentSlot, CheckoutOrder, UIMoment } from "@/lib/types";
 
 const UI_MOMENT_OPEN = "<<<UI_MOMENT>>>";
 
+// The model writes **bold** for emphasis. Render it as real emphasis rather
+// than leaking literal asterisks into the bubble. Built from React elements —
+// no HTML injection, no markdown dependency.
+function renderInlineEmphasis(text: string): React.ReactNode[] {
+  return text.split(/(\*\*[^*\n]+\*\*)/g).map((part, i) =>
+    part.length > 4 && part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i} className="font-semibold">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      part
+    ),
+  );
+}
+
 type SkeletonKind = "date_picker" | "order_builder" | "contact_form" | "generic";
 
 // Peek at the component name inside the still-streaming (unterminated) UI moment
@@ -107,7 +122,7 @@ export function MessageBubble({
       <div className="flex max-w-[88%] flex-col gap-2.5">
         {hasText && (
           <div className="rounded-2xl rounded-bl-sm bg-surface px-4 py-3 text-[15px] leading-relaxed text-foreground ring-1 ring-border/70">
-            <p className="whitespace-pre-wrap">{text}</p>
+            <p className="whitespace-pre-wrap">{renderInlineEmphasis(text)}</p>
           </div>
         )}
 

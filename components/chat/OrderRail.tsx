@@ -5,6 +5,7 @@ import { CalendarClock, ChevronUp, Receipt, X } from "lucide-react";
 import { cn, formatUSD } from "@/lib/utils";
 import {
   computeOrderPricing,
+  getWholeHomeUpgrade,
   SERVICE_CATALOG,
   type OrderPricingLine,
 } from "@/lib/pricing";
@@ -62,6 +63,7 @@ function RailBody({ order, customer, onSelection, disabled }: RailProps) {
   const hasServices = serviceLines.length > 0;
   const subtotal = pricing.discountedSubtotal + pricing.addonsTotal;
   const appointment = formatAppointment(customer, false);
+  const wholeHomeUpgrade = getWholeHomeUpgrade(order);
 
   if (!hasServices) {
     return (
@@ -133,6 +135,14 @@ function RailBody({ order, customer, onSelection, disabled }: RailProps) {
         {pricing.subscriptionDiscount > 0 && (
           <p className="mt-1 text-xs font-medium text-emerald-600">
             Annual plan — 15% off, save {formatUSD(pricing.subscriptionDiscount)}/yr
+          </p>
+        )}
+        {wholeHomeUpgrade && (
+          <p className="mt-2 rounded-md bg-primary/[0.06] px-2.5 py-2 text-xs leading-relaxed text-primary">
+            These three are the{" "}
+            <span className="font-semibold">Whole-Home Air Package</span> — bundled
+            it&apos;s {formatUSD(wholeHomeUpgrade.packagePrice)}, saving{" "}
+            {formatUSD(wholeHomeUpgrade.savings)}. Just ask and we&apos;ll switch it.
           </p>
         )}
         {pricing.notes.map((note, i) => (

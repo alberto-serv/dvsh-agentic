@@ -153,6 +153,10 @@ export interface OrderBuilderData {
   // Present when the service is priced by access type (same option shape as the
   // tier picker). Omitted for flat- or duct-priced services.
   access_options?: TierOption[];
+  // Seeds the access radio when the customer already said where the vent exits
+  // (a stated fact). When absent nothing is preselected — the card must never
+  // assert an access type the customer didn't choose.
+  access_type?: string;
   // AC Duct Cleaning and the Whole-Home Air Package scale with duct count.
   needs_duct_count?: boolean;
   // Seeds the duct stepper when the customer already stated a count (a fact, not
@@ -163,6 +167,9 @@ export interface OrderBuilderData {
   // Flat-price services the model has already decided to bundle in (e.g. coil
   // cleaning alongside a vent cleaning). Rendered as pre-checked footer lines.
   add_services?: string[];
+  // Complementary flat-price services offered as unchecked checkboxes the
+  // customer can add on the card. Live pricing updates as they tick them.
+  suggested_services?: string[];
 }
 
 export type UIMoment =
