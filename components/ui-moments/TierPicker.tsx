@@ -3,25 +3,38 @@
 import { useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { cn, formatUSD } from "@/lib/utils";
-import type { TierPickerData, TierOption } from "@/lib/types";
+import type { CheckoutOrder, TierPickerData, TierOption } from "@/lib/types";
 
 interface Props {
   data: TierPickerData;
-  onSelect: (label: string) => void;
+  order: CheckoutOrder["services"];
+  onSelect: (
+    update: Partial<CheckoutOrder["services"]>,
+    humanLabel: string,
+  ) => void;
   disabled?: boolean;
 }
 
-export function TierPicker({ data, onSelect, disabled }: Props) {
+export function TierPicker({ data, order, onSelect, disabled }: Props) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const isIncremental = hasOverlappingIncludes(data.options);
 
   function handlePick(option: TierOption) {
-    if (disabled || selectedKey) return;
+    if (disabled) return;
     setSelectedKey(option.key);
-    const choice = data.units
-      ? `Let's go with ${option.label} — ${data.units}.`
-      : `Let's go with ${option.label}.`;
-    onSelect(choice);
+
+    const serviceId = data.service_id ?? "dryer-vent-cleaning";
+    const orderField = data.order_field ?? "dryerVentAccessType";
+    const existing = order.selectedServices ?? [];
+    const selectedServices = existing.includes(serviceId)
+      ? existing
+      : [...existing, serviceId];
+
+    const update: Partial<CheckoutOrder["services"]> = { selectedServices };
+    if (orderField === "bundleAccessType") update.bundleAccessType = option.key;
+    else update.dryerVentAccessType = option.key;
+
+    onSelect(update, `${option.label} · $${option.price_per_unit}`);
   }
 
   return (
@@ -58,15 +71,14 @@ export function TierPicker({ data, onSelect, disabled }: Props) {
             <li key={option.key}>
               <button
                 type="button"
-                disabled={disabled || selectedKey !== null}
+                disabled={disabled}
                 onClick={() => handlePick(option)}
                 className={cn(
                   "group w-full text-left transition-colors",
                   isActive
                     ? "bg-primary/[0.04]"
                     : "bg-background hover:bg-muted/60",
-                  (disabled || (selectedKey && !isActive)) &&
-                    "cursor-not-allowed opacity-60",
+                  disabled && "cursor-not-allowed opacity-60",
                 )}
               >
                 <div className="grid grid-cols-[20px_1fr] items-start gap-3 px-4 py-4 sm:grid-cols-[20px_minmax(180px,220px)_1fr] sm:gap-5">

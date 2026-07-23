@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { cn, formatUSD } from "@/lib/utils";
-import type { AddonPickerData, AddonOption } from "@/lib/types";
+import type { AddonPickerData, AddonOption, CheckoutOrder } from "@/lib/types";
 
 interface Props {
   data: AddonPickerData;
-  onSelect: (label: string) => void;
+  onSelect: (
+    update: Partial<CheckoutOrder["services"]>,
+    humanLabel: string,
+  ) => void;
   disabled?: boolean;
 }
 
@@ -36,30 +39,43 @@ export function AddonPicker({ data, onSelect, disabled }: Props) {
     const chosen = data.options.filter((o) => selected.has(o.key));
     setSubmitted(true);
     if (chosen.length === 0) {
-      onSelect("No upgrades for me, thanks.");
+      onSelect({ selectedCheckoutAddOns: [] }, "No upgrades");
       return;
     }
-    const list = chosen.map((o) => `${o.name} (${priceText(o)})`).join(", ");
-    onSelect(`Please add these upgrades: ${list}.`);
+    onSelect(
+      { selectedCheckoutAddOns: chosen.map((o) => o.key) },
+      `Added: ${chosen.map((o) => o.name).join(", ")}`,
+    );
   }
 
   function handleSkip() {
     if (locked) return;
     setSubmitted(true);
-    onSelect("No upgrades for me, thanks.");
+    onSelect({ selectedCheckoutAddOns: [] }, "No upgrades");
   }
 
   const count = selected.size;
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      <header className="border-b border-border px-5 py-4">
-        <h3 className="font-heading text-base font-semibold tracking-tight text-foreground">
-          {data.prompt ?? "Add any upgrades?"}
-        </h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Optional — tap any to add, or skip.
-        </p>
+      <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+        <div>
+          <h3 className="font-heading text-base font-semibold tracking-tight text-foreground">
+            {data.prompt ?? "Add any upgrades?"}
+          </h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Optional — tap any to add, or skip.
+          </p>
+        </div>
+        {submitted && !disabled && (
+          <button
+            type="button"
+            onClick={() => setSubmitted(false)}
+            className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline"
+          >
+            Change
+          </button>
+        )}
       </header>
 
       <ul className="divide-y divide-border">

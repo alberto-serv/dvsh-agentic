@@ -49,7 +49,13 @@ export interface SlotPickerData {
 }
 
 export interface BookingHandoffData {
-  summary: {
+  // Slim format: the client owns the order, so the model sends only the picked
+  // slot label. The review card is built from live order + customer state.
+  slot?: string;
+
+  // Legacy fields from older saved chats — when `summary` is present the card
+  // renders in tolerant fallback mode from these instead of live state.
+  summary?: {
     services: string;
     slot: string;
     total: number;
@@ -58,10 +64,9 @@ export interface BookingHandoffData {
     // Optional annual-plan / renewal footnote.
     note?: string;
   };
-  // Structured selection written to localStorage("estimateData") and consumed
-  // by /estimate/payment, which recomputes pricing exactly like the storefront.
+  // Structured selection older chats wrote to localStorage("estimateData").
   order?: CheckoutOrder;
-  booking_url: string;
+  booking_url?: string;
 }
 
 // Storefront-shaped estimate data the /estimate/payment page reads.
@@ -103,6 +108,10 @@ export interface TierPickerData {
   service: string;
   units?: string;
   options: TierOption[];
+  // Which order the picked tier maps onto. Defaults to the plain Dryer Vent
+  // Cleaning access type; the bundle reuses this card for its own access field.
+  service_id?: string;
+  order_field?: "dryerVentAccessType" | "bundleAccessType";
 }
 
 export interface DatePickerData {
@@ -139,6 +148,20 @@ export interface AddonPickerData {
   options: AddonOption[];
 }
 
+export interface OrderBuilderData {
+  service_id: string;
+  // Present when the service is priced by access type (same option shape as the
+  // tier picker). Omitted for flat- or duct-priced services.
+  access_options?: TierOption[];
+  // AC Duct Cleaning and the Whole-Home Air Package scale with duct count.
+  needs_duct_count?: boolean;
+  // The checkout add-ons offered alongside a dryer-vent service.
+  addons?: AddonOption[];
+  // Flat-price services the model has already decided to bundle in (e.g. coil
+  // cleaning alongside a vent cleaning). Rendered as pre-checked footer lines.
+  add_services?: string[];
+}
+
 export type UIMoment =
   | { component: "quote_summary"; data: QuoteSummaryData }
   | { component: "slot_picker"; data: SlotPickerData }
@@ -147,4 +170,5 @@ export type UIMoment =
   | { component: "date_picker"; data: DatePickerData }
   | { component: "contact_form"; data: ContactFormData }
   | { component: "recurrence_picker"; data: RecurrencePickerData }
-  | { component: "addon_picker"; data: AddonPickerData };
+  | { component: "addon_picker"; data: AddonPickerData }
+  | { component: "order_builder"; data: OrderBuilderData };

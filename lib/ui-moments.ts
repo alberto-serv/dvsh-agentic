@@ -1,4 +1,34 @@
-import type { UIMoment } from "./types";
+import type { CheckoutOrder, UIMoment } from "./types";
+
+// Structured card interactions travel through the conversation as ordinary user
+// messages prefixed with this marker: `[selection] <humanLabel>\n<json>`. The
+// human label renders as a compact chip; the JSON is the customer's choice,
+// already applied client-side to their order/customer state.
+export const SELECTION_PREFIX = "[selection] ";
+
+export function buildSelectionMessage(
+  update: Partial<CheckoutOrder["services"]>,
+  humanLabel: string,
+): string {
+  return `${SELECTION_PREFIX}${humanLabel}\n${JSON.stringify(update)}`;
+}
+
+export function parseSelectionMessage(
+  content: string,
+): { humanLabel: string; update: Record<string, unknown> } | null {
+  if (!content.startsWith(SELECTION_PREFIX)) return null;
+  const rest = content.slice(SELECTION_PREFIX.length);
+  const nl = rest.indexOf("\n");
+  const humanLabel = nl === -1 ? rest : rest.slice(0, nl);
+  const jsonStr = nl === -1 ? "" : rest.slice(nl + 1);
+  let update: Record<string, unknown> = {};
+  try {
+    if (jsonStr) update = JSON.parse(jsonStr) as Record<string, unknown>;
+  } catch {
+    update = {};
+  }
+  return { humanLabel, update };
+}
 
 const UI_MOMENT_REGEX_GLOBAL =
   /<<<UI_MOMENT>>>\s*([\s\S]*?)\s*<<<END_UI_MOMENT>>>/g;

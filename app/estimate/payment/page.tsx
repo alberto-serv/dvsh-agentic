@@ -21,14 +21,9 @@ import {
   Phone,
 } from "lucide-react"
 import { format } from "date-fns"
-import {
-  isRecurringEligible,
-  frequencyMultiplier,
-  hasSplitAnnualPricing,
-  getAnnualFirstPayment,
-  getAnnualRenewal,
-  type ServiceFrequency,
-} from "@/lib/service-frequency"
+import { hasSplitAnnualPricing } from "@/lib/service-frequency"
+import { SERVICE_CATALOG, computeOrderPricing } from "@/lib/pricing"
+import type { CheckoutOrder } from "@/lib/types"
 
 const ESTIMATE_KEY = "estimateData"
 
@@ -44,59 +39,10 @@ const timeWindows: Record<string, string> = {
   "4pm": "4:00 PM - 5:00 PM",
 }
 
-const availableServices = [
-  { id: "dryer-vent-cleaning", name: "Dryer Vent Cleaning", basePrice: 175 },
-  { id: "dryer-vent-special", name: "Dryer Vent Cleaning Special", basePrice: 350 },
-  { id: "dryer-vent-duct-bundle", name: "Dryer Vent + Air Duct Cleaning Bundle", basePrice: 0 },
-  { id: "dryer-vent-duct-repair", name: "Dryer Vent Duct Repair", basePrice: 0 },
-  { id: "bathroom-fan", name: "Bathroom Fan Cleaning", basePrice: 175 },
-  { id: "coil-cleaning", name: "Coil Cleaning", basePrice: 385 },
-  { id: "ac-duct-cleaning", name: "AC Duct Cleaning", basePrice: 500 },
-  { id: "whole-home-air", name: "Whole-Home Air Package", basePrice: 0 },
-]
-
-type CheckoutAddOn = {
-  id: string
-  name: string
-  price: number
-  priceLabel?: string
-}
-
-const checkoutAddOns: CheckoutAddOn[] = [
-  { id: "magnetic-vent-cover", name: "Magnetic Vent Cover", price: 110 },
-  { id: "transition-hose", name: "Transition Hose Replacement", price: 75 },
-  { id: "reroute", name: "Reroute", price: 189, priceLabel: "from $189" },
-]
-
-function computeWholeHome(ducts: number): number {
-  const gross = 500 + Math.max(0, ducts - 10) * 30 + 385 + 175
-  return Math.round(gross * 0.85)
-}
-
 type BookingData = {
-  services?: Record<string, unknown> & {
-    selectedServices?: string[]
-    serviceFrequencies?: Record<string, ServiceFrequency>
-    selectedCheckoutAddOns?: string[]
-    ductCount?: number
-    dryerVentAccessType?: string
-    bundlePrice?: number
-    specialAccessType?: string
-    wholeHomeDuctCount?: number
-    wholeHomePrice?: number
-  }
+  services?: Partial<CheckoutOrder["services"]>
   customer?: { preferredDate?: string; timeWindow?: string; [k: string]: unknown }
   payment?: Record<string, unknown>
-}
-
-type ServiceLine = {
-  id: string
-  name: string
-  price: number
-  discountedPrice: number
-  frequency: ServiceFrequency
-  splitPricing: boolean
-  annualRenewal: number
 }
 
 function CheckoutShell({ children }: { children: React.ReactNode }) {
@@ -155,105 +101,37 @@ export default function PaymentPage() {
     setHydrated(true)
   }, [])
 
-  const selectedCheckoutAddOns: string[] = bookingData?.services?.selectedCheckoutAddOns || []
-
-  const getCheckoutAddOnsTotal = () =>
-    selectedCheckoutAddOns.reduce((sum, id) => {
-      const addon = checkoutAddOns.find((a) => a.id === id)
-      return addon && !addon.priceLabel ? sum + addon.price : sum
-    }, 0)
-
-  const getSelectedCheckoutAddOnsDetails = () =>
-    selectedCheckoutAddOns
-      .map((id) => checkoutAddOns.find((a) => a.id === id))
-      .filter((a): a is CheckoutAddOn => !!a)
-
-  const getServiceFrequency = (serviceId: string): ServiceFrequency => {
-    if (!isRecurringEligible(serviceId)) return "none"
-    return bookingData?.services?.serviceFrequencies?.[serviceId] ?? "none"
+  const order: CheckoutOrder["services"] = {
+    ...bookingData?.services,
+    selectedServices: bookingData?.services?.selectedServices ?? [],
   }
+  const selectedCheckoutAddOns: string[] = order.selectedCheckoutAddOns ?? []
 
-  const getServiceBasePrice = (serviceId: string): number => {
-    const service = availableServices.find((s) => s.id === serviceId)
-    if (!service) return 0
-    const s = bookingData?.services ?? {}
-    if (serviceId === "ac-duct-cleaning") {
-      const ductCount = s.ductCount ?? 10
-      return 500 + Math.max(0, ductCount - 10) * 30
-    }
-    if (serviceId === "dryer-vent-cleaning") {
-      const access = s.dryerVentAccessType
-      if (access === "roof") return 249
-      if (access === "second-floor") return 189
-      return 175
-    }
-    if (serviceId === "dryer-vent-duct-bundle") return s.bundlePrice ?? 0
-    if (serviceId === "whole-home-air") {
-      return s.wholeHomePrice ?? computeWholeHome(s.wholeHomeDuctCount ?? 10)
-    }
-    if (serviceId === "dryer-vent-duct-repair") return 0
-    return service.basePrice
-  }
-
-  const getSelectedServicesWithDetails = () => {
-    const selected: string[] = bookingData?.services?.selectedServices || []
-    return selected
-      .map((serviceId) => {
-        const service = availableServices.find((s) => s.id === serviceId)
-        if (!service) return null
-        const price = getServiceBasePrice(serviceId)
-        const frequency = getServiceFrequency(serviceId)
-        const splitPricing = hasSplitAnnualPricing(serviceId)
-        const discountedPrice =
-          frequency === "annual"
-            ? getAnnualFirstPayment(serviceId, price)
-            : price * frequencyMultiplier(frequency)
-        const annualRenewal =
-          frequency === "annual"
-            ? getAnnualRenewal(serviceId, price, {
-                specialAccessType: bookingData?.services?.specialAccessType,
-              })
-            : 0
-        return {
-          id: service.id,
-          name: service.name,
-          price,
-          discountedPrice,
-          frequency,
-          splitPricing,
-          annualRenewal,
-        }
-      })
-      .filter(Boolean) as ServiceLine[]
-  }
+  const pricing = computeOrderPricing(order)
+  const serviceLines = pricing.lines.filter((l) => l.serviceId)
+  const addonLines = pricing.lines.filter((l) => l.addonId)
 
   const isRepairOnly = () => {
-    const selected: string[] = bookingData?.services?.selectedServices || []
+    const selected = order.selectedServices
     return selected.length === 1 && selected[0] === "dryer-vent-duct-repair"
   }
 
-  const getSubtotal = () =>
-    getSelectedServicesWithDetails().reduce((t: number, s: ServiceLine) => t + s.price, 0)
-  const getDiscountedSubtotal = () =>
-    getSelectedServicesWithDetails().reduce((t: number, s: ServiceLine) => t + s.discountedPrice, 0)
-  const getSubscriptionDiscount = () => Math.round(getSubtotal() - getDiscountedSubtotal())
-  const hasRecurringService = (): boolean => {
-    const freqs = bookingData?.services?.serviceFrequencies || {}
-    const selected: string[] = bookingData?.services?.selectedServices || []
-    return selected.some((id) => isRecurringEligible(id) && freqs[id] === "annual")
-  }
+  const hasRecurringService = (): boolean =>
+    pricing.lines.some((l) => l.frequency === "annual")
+
+  // Promo is a UI-layer discount applied on top of lib/pricing's base totals.
   const getTax = () =>
-    (getDiscountedSubtotal() + getCheckoutAddOnsTotal() - promoDiscount) * 0.0825
+    (pricing.discountedSubtotal + pricing.addonsTotal - promoDiscount) * 0.0825
   const getTotal = () =>
-    getDiscountedSubtotal() + getCheckoutAddOnsTotal() - promoDiscount + getTax()
+    pricing.discountedSubtotal + pricing.addonsTotal - promoDiscount + getTax()
 
   const handleApplyPromo = () => {
     const code = promoCode.toUpperCase()
     if (code === "SAVE10") {
-      setPromoDiscount(Math.round(getDiscountedSubtotal() * 0.1))
+      setPromoDiscount(Math.round(pricing.discountedSubtotal * 0.1))
       setAppliedPromo(code)
     } else if (code === "FIRST20") {
-      setPromoDiscount(Math.round(getDiscountedSubtotal() * 0.2))
+      setPromoDiscount(Math.round(pricing.discountedSubtotal * 0.2))
       setAppliedPromo(code)
     } else {
       setPromoDiscount(0)
@@ -287,7 +165,7 @@ export default function PaymentPage() {
       services: {
         ...bookingData.services,
         selectedCheckoutAddOns,
-        checkoutAddOnsTotal: getCheckoutAddOnsTotal(),
+        checkoutAddOnsTotal: pricing.addonsTotal,
       },
       payment: repairOnly
         ? { method: "none", promoCode: null, promoDiscount: 0, total: 0 }
@@ -479,24 +357,26 @@ export default function PaymentPage() {
                       <span>Selected Services</span>
                     </div>
                     <div className="space-y-2 pl-6">
-                      {getSelectedServicesWithDetails().map((service: ServiceLine) => {
+                      {serviceLines.map((service) => {
                         const isAnnual = service.frequency === "annual"
+                        const splitPricing = hasSplitAnnualPricing(service.serviceId!)
+                        const annualRenewal = service.annualRenewal ?? 0
                         return (
-                          <div key={service.id} className="flex justify-between text-sm">
+                          <div key={service.serviceId} className="flex justify-between text-sm">
                             <span className="text-muted-foreground">
-                              {service.name}
+                              {service.label}
                               {isAnnual && <span className="ml-1 text-[10px] font-medium text-[#2A75AE]">(Annual)</span>}
                             </span>
                             <span className="text-right">
                               <span className="font-medium tabular-nums block">
-                                ${Math.round(service.discountedPrice).toLocaleString()}
-                                {isAnnual && service.splitPricing && (
+                                ${Math.round(service.amount).toLocaleString()}
+                                {isAnnual && splitPricing && (
                                   <span className="ml-1 text-[10px] font-medium text-muted-foreground">today</span>
                                 )}
                               </span>
-                              {isAnnual && service.annualRenewal > 0 && (
+                              {isAnnual && annualRenewal > 0 && (
                                 <span className="block text-[10px] font-medium text-[#2A75AE] tabular-nums">
-                                  then ${Math.round(service.annualRenewal).toLocaleString()}/yr
+                                  then ${Math.round(annualRenewal).toLocaleString()}/yr
                                 </span>
                               )}
                             </span>
@@ -506,7 +386,7 @@ export default function PaymentPage() {
                     </div>
                   </div>
 
-                  {selectedCheckoutAddOns.length > 0 && (
+                  {addonLines.length > 0 && (
                     <>
                       <Separator />
                       <div className="space-y-2">
@@ -515,21 +395,26 @@ export default function PaymentPage() {
                           <span>Add-Ons</span>
                         </div>
                         <div className="space-y-1 pl-6">
-                          {getSelectedCheckoutAddOnsDetails().map((addon) => (
-                            <div key={addon.id} className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">{addon.name}</span>
-                              <span className="font-medium tabular-nums text-right">
-                                {addon.priceLabel ? (
-                                  <>
-                                    {addon.priceLabel}
-                                    <span className="block text-[10px] font-normal text-muted-foreground">Billed on-site</span>
-                                  </>
-                                ) : (
-                                  `$${money(addon.price)}`
-                                )}
-                              </span>
-                            </div>
-                          ))}
+                          {addonLines.map((addon) => {
+                            const priceLabel = SERVICE_CATALOG.checkoutAddOns.find(
+                              (a) => a.id === addon.addonId,
+                            )?.priceLabel
+                            return (
+                              <div key={addon.addonId} className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">{addon.label}</span>
+                                <span className="font-medium tabular-nums text-right">
+                                  {priceLabel ? (
+                                    <>
+                                      {priceLabel}
+                                      <span className="block text-[10px] font-normal text-muted-foreground">Billed on-site</span>
+                                    </>
+                                  ) : (
+                                    `$${money(addon.amount)}`
+                                  )}
+                                </span>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
                     </>
@@ -537,13 +422,13 @@ export default function PaymentPage() {
 
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span className="font-medium">${money(getSubtotal() + getCheckoutAddOnsTotal())}</span>
+                    <span className="font-medium">${money(pricing.subtotal + pricing.addonsTotal)}</span>
                   </div>
 
-                  {getSubscriptionDiscount() > 0 && (
+                  {pricing.subscriptionDiscount > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-green-600">Annual Plan Savings (15%)</span>
-                      <span className="font-medium text-green-600">-${money(getSubscriptionDiscount())}</span>
+                      <span className="font-medium text-green-600">-${money(pricing.subscriptionDiscount)}</span>
                     </div>
                   )}
 

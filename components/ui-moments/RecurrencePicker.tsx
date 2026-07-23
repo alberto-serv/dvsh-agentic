@@ -3,25 +3,42 @@
 import { useState } from "react";
 import { Check, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { RecurrencePickerData, RecurrenceOption } from "@/lib/types";
+import { isRecurringEligible } from "@/lib/service-frequency";
+import type {
+  CheckoutOrder,
+  RecurrencePickerData,
+  RecurrenceOption,
+} from "@/lib/types";
 
 interface Props {
   data: RecurrencePickerData;
-  onSelect: (label: string) => void;
+  order: CheckoutOrder["services"];
+  onSelect: (
+    update: Partial<CheckoutOrder["services"]>,
+    humanLabel: string,
+  ) => void;
   disabled?: boolean;
 }
 
-export function RecurrencePicker({ data, onSelect, disabled }: Props) {
+export function RecurrencePicker({ data, order, onSelect, disabled }: Props) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   function handlePick(option: RecurrenceOption) {
-    if (disabled || selectedKey) return;
+    if (disabled) return;
     setSelectedKey(option.key);
-    const message =
-      option.discount_percent > 0
-        ? `Sign me up for ${option.label.toLowerCase()} — save ${option.discount_percent}%.`
-        : `Let's keep it ${option.label.toLowerCase()}.`;
-    onSelect(message);
+
+    const isAnnual = option.discount_percent > 0;
+    const freq: "annual" | "none" = isAnnual ? "annual" : "none";
+    const eligibleIds = (order.selectedServices ?? []).filter(isRecurringEligible);
+    const serviceFrequencies: Record<string, "annual" | "none"> = {
+      ...order.serviceFrequencies,
+    };
+    for (const id of eligibleIds) serviceFrequencies[id] = freq;
+
+    const humanLabel = isAnnual
+      ? `Annual plan · ${option.discount_percent}% off`
+      : "One-time";
+    onSelect({ serviceFrequencies }, humanLabel);
   }
 
   return (
@@ -50,13 +67,12 @@ export function RecurrencePicker({ data, onSelect, disabled }: Props) {
             <li key={option.key}>
               <button
                 type="button"
-                disabled={disabled || selectedKey !== null}
+                disabled={disabled}
                 onClick={() => handlePick(option)}
                 className={cn(
                   "group flex w-full items-start gap-4 px-5 py-4 text-left transition-colors",
                   isActive ? "bg-primary/[0.04]" : "hover:bg-muted/60",
-                  (disabled || (selectedKey && !isActive)) &&
-                    "cursor-not-allowed opacity-60",
+                  disabled && "cursor-not-allowed opacity-60",
                 )}
               >
                 <div

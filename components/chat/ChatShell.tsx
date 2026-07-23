@@ -6,9 +6,27 @@ import { Plus } from "lucide-react";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { EmptyState } from "./EmptyState";
+import { OrderRail, OrderRailBar } from "./OrderRail";
 import { parseAgentMd } from "@/lib/agent";
-import { loadMessages, saveMessages, clearMessages } from "@/lib/storage";
-import type { AgentSlot, ChatMessage } from "@/lib/types";
+import {
+  loadMessages,
+  saveMessages,
+  clearMessages,
+  loadOrder,
+  saveOrder,
+  clearOrder,
+  loadCustomer,
+  saveCustomer,
+  clearCustomer,
+} from "@/lib/storage";
+import {
+  SELECTION_PREFIX,
+  buildSelectionMessage,
+} from "@/lib/ui-moments";
+import type { AgentSlot, ChatMessage, CheckoutOrder } from "@/lib/types";
+
+type OrderServices = CheckoutOrder["services"];
+type Customer = CheckoutOrder["customer"];
 
 function id() {
   return Math.random().toString(36).slice(2, 10);
@@ -16,6 +34,8 @@ function id() {
 
 export function ChatShell() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [order, setOrder] = useState<OrderServices>({ selectedServices: [] });
+  const [customer, setCustomer] = useState<Customer>({});
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [agentMdRaw, setAgentMdRaw] = useState<string | null>(null);
@@ -31,8 +51,11 @@ export function ChatShell() {
   useEffect(() => {
     const restored = loadMessages();
     // localStorage isn't available during SSR, so hydration must happen post-mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (restored.length > 0) setMessages(restored);
+    setOrder(loadOrder());
+    setCustomer(loadCustomer());
+    /* eslint-enable react-hooks/set-state-in-effect */
     setHydrated(true);
   }, []);
 
@@ -40,6 +63,16 @@ export function ChatShell() {
     if (!hydrated) return;
     saveMessages(messages);
   }, [messages, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveOrder(order);
+  }, [order, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveCustomer(customer);
+  }, [customer, hydrated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +97,11 @@ export function ChatShell() {
 
   const handleNewChat = useCallback(() => {
     clearMessages();
+    clearOrder();
+    clearCustomer();
     setMessages([]);
+    setOrder({ selectedServices: [] });
+    setCustomer({});
     setInput("");
   }, []);
 
@@ -151,9 +188,42 @@ export function ChatShell() {
     [agentMdRaw, isStreaming],
   );
 
+  // Card interactions are optimistic: the local state update lands immediately
+  // and independently of the network call that tells the agent.
+  const applySelection = useCallback(
+    (update: Partial<OrderServices>, humanLabel: string) => {
+      setOrder((prev) => ({ ...prev, ...update }));
+      sendMessage(buildSelectionMessage(update, humanLabel));
+    },
+    [sendMessage],
+  );
+
+  const applyCustomerSelection = useCallback(
+    (update: Partial<Customer>, humanLabel: string) => {
+      setCustomer((prev) => ({ ...prev, ...update }));
+      sendMessage(`${SELECTION_PREFIX}${humanLabel}\n${JSON.stringify(update)}`);
+    },
+    [sendMessage],
+  );
+
+  // Contact form writes customer state without an extra network message — it
+  // keeps sending its own hidden "Here are my details:" message separately.
+  const applyContactData = useCallback((update: Partial<Customer>) => {
+    setCustomer((prev) => ({ ...prev, ...update }));
+  }, []);
+
+  // Mirrors an in-progress card configuration (the OrderBuilder) into order
+  // state without messaging the model — the single round trip is at confirm.
+  const updateOrder = useCallback((update: Partial<OrderServices>) => {
+    setOrder((prev) => ({ ...prev, ...update }));
+  }, []);
+
   const inputDisabled = isStreaming || !agentMdRaw;
   // Start page uses the full light-blue backdrop; the chat view stays on the neutral background.
   const isStart = messages.length === 0 && !agentLoadError;
+  // The live order rail appears once the conversation is underway — never on the
+  // empty start screen or the error state.
+  const showRail = messages.length > 0 && !agentLoadError;
 
   return (
     <div className={`flex h-dvh flex-col ${isStart ? "bg-[#eaf1fc]" : "bg-background"}`}>
@@ -209,38 +279,64 @@ export function ChatShell() {
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
-          {agentLoadError ? (
-            <div className="flex h-full items-center justify-center px-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Couldn&apos;t load our pricing data ({agentLoadError}).
-                Reload the page to retry.
-              </p>
-            </div>
-          ) : messages.length === 0 ? (
-            <EmptyState
-              onSuggestion={(s) => sendMessage(s)}
-              disabled={inputDisabled}
-            />
-          ) : (
-            <MessageList
-              messages={messages}
-              isStreaming={isStreaming}
-              streamingMessageId={streamingId}
-              onChoice={(label) => sendMessage(label)}
-              availability={availability}
+      <main className="flex flex-1 overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            {agentLoadError ? (
+              <div className="flex h-full items-center justify-center px-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Couldn&apos;t load our pricing data ({agentLoadError}).
+                  Reload the page to retry.
+                </p>
+              </div>
+            ) : messages.length === 0 ? (
+              <EmptyState
+                onSuggestion={(s) => sendMessage(s)}
+                disabled={inputDisabled}
+              />
+            ) : (
+              <MessageList
+                messages={messages}
+                isStreaming={isStreaming}
+                streamingMessageId={streamingId}
+                onChoice={(label) => sendMessage(label)}
+                onSelection={applySelection}
+                onCustomerSelection={applyCustomerSelection}
+                onContactData={applyContactData}
+                onOrderChange={updateOrder}
+                order={order}
+                customer={customer}
+                availability={availability}
+              />
+            )}
+          </div>
+
+          {showRail && (
+            <OrderRailBar
+              order={order}
+              customer={customer}
+              onSelection={applySelection}
+              disabled={isStreaming}
             />
           )}
+
+          <ChatInput
+            value={input}
+            onChange={setInput}
+            onSubmit={() => sendMessage(input)}
+            disabled={inputDisabled}
+            transparent={isStart}
+          />
         </div>
 
-        <ChatInput
-          value={input}
-          onChange={setInput}
-          onSubmit={() => sendMessage(input)}
-          disabled={inputDisabled}
-          transparent={isStart}
-        />
+        {showRail && (
+          <OrderRail
+            order={order}
+            customer={customer}
+            onSelection={applySelection}
+            disabled={isStreaming}
+          />
+        )}
       </main>
     </div>
   );

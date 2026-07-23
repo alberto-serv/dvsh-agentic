@@ -12,12 +12,49 @@ import { DatePicker } from "@/components/ui-moments/DatePicker";
 import { ContactForm } from "@/components/ui-moments/ContactForm";
 import { RecurrencePicker } from "@/components/ui-moments/RecurrencePicker";
 import { AddonPicker } from "@/components/ui-moments/AddonPicker";
-import type { AgentSlot, UIMoment } from "@/lib/types";
+import { OrderBuilder } from "@/components/ui-moments/OrderBuilder";
+import { CardSkeleton } from "./CardSkeleton";
+import type { AgentSlot, CheckoutOrder, UIMoment } from "@/lib/types";
+
+const UI_MOMENT_OPEN = "<<<UI_MOMENT>>>";
+
+type SkeletonKind = "date_picker" | "order_builder" | "contact_form" | "generic";
+
+// Peek at the component name inside the still-streaming (unterminated) UI moment
+// so we can show a skeleton shaped like the card that's arriving.
+function peekStreamingCard(content: string): SkeletonKind {
+  const idx = content.lastIndexOf(UI_MOMENT_OPEN);
+  if (idx === -1) return "generic";
+  const partial = content.slice(idx + UI_MOMENT_OPEN.length);
+  const match = partial.match(/"component"\s*:\s*"(\w+)"/);
+  const name = match?.[1];
+  if (name === "date_picker" || name === "order_builder" || name === "contact_form") {
+    return name;
+  }
+  return "generic";
+}
+
+type SelectionHandler = (
+  update: Partial<CheckoutOrder["services"]>,
+  humanLabel: string,
+) => void;
+type CustomerSelectionHandler = (
+  update: Partial<CheckoutOrder["customer"]>,
+  humanLabel: string,
+) => void;
+type ContactDataHandler = (update: Partial<CheckoutOrder["customer"]>) => void;
+type OrderChangeHandler = (update: Partial<CheckoutOrder["services"]>) => void;
 
 interface Props {
   role: "user" | "assistant";
   content: string;
   onChoice?: (label: string) => void;
+  onSelection?: SelectionHandler;
+  onCustomerSelection?: CustomerSelectionHandler;
+  onContactData?: ContactDataHandler;
+  onOrderChange?: OrderChangeHandler;
+  order?: CheckoutOrder["services"];
+  customer?: CheckoutOrder["customer"];
   isStreaming?: boolean;
   availability?: AgentSlot[];
 }
@@ -26,6 +63,12 @@ export function MessageBubble({
   role,
   content,
   onChoice,
+  onSelection,
+  onCustomerSelection,
+  onContactData,
+  onOrderChange,
+  order,
+  customer,
   isStreaming,
   availability,
 }: Props) {
@@ -48,6 +91,15 @@ export function MessageBubble({
 
   const hasText = text.length > 0;
   const choiceHandler = onChoice ?? (() => {});
+  const selectionHandler: SelectionHandler = onSelection ?? (() => {});
+  const customerSelectionHandler: CustomerSelectionHandler =
+    onCustomerSelection ?? (() => {});
+  const contactDataHandler: ContactDataHandler = onContactData ?? (() => {});
+  const orderChangeHandler: OrderChangeHandler = onOrderChange ?? (() => {});
+  const orderServices: CheckoutOrder["services"] = order ?? {
+    selectedServices: [],
+  };
+  const customerData: CheckoutOrder["customer"] = customer ?? {};
 
   return (
     <div className="flex items-start gap-3">
@@ -60,9 +112,7 @@ export function MessageBubble({
         )}
 
         {isStreaming && isOpenMoment && (
-          <div className="rounded-2xl rounded-bl-sm bg-surface px-4 py-2.5 text-sm italic text-muted-foreground ring-1 ring-border/70">
-            Preparing card…
-          </div>
+          <CardSkeleton kind={peekStreamingCard(content)} />
         )}
 
         {uiMoments.map((moment, i) => (
@@ -70,6 +120,12 @@ export function MessageBubble({
             key={i}
             moment={moment}
             onChoice={choiceHandler}
+            onSelection={selectionHandler}
+            onCustomerSelection={customerSelectionHandler}
+            onContactData={contactDataHandler}
+            onOrderChange={orderChangeHandler}
+            order={orderServices}
+            customer={customerData}
             availability={availability}
             disabled={!onChoice}
           />
@@ -82,11 +138,23 @@ export function MessageBubble({
 function UIMomentCard({
   moment,
   onChoice,
+  onSelection,
+  onCustomerSelection,
+  onContactData,
+  onOrderChange,
+  order,
+  customer,
   availability,
   disabled,
 }: {
   moment: UIMoment;
   onChoice: (label: string) => void;
+  onSelection: SelectionHandler;
+  onCustomerSelection: CustomerSelectionHandler;
+  onContactData: ContactDataHandler;
+  onOrderChange: OrderChangeHandler;
+  order: CheckoutOrder["services"];
+  customer: CheckoutOrder["customer"];
   availability?: AgentSlot[];
   disabled: boolean;
 }) {
@@ -97,7 +165,7 @@ function UIMomentCard({
       return (
         <SlotPicker
           data={moment.data}
-          onSelect={onChoice}
+          onSelect={onCustomerSelection}
           disabled={disabled}
         />
       );
@@ -105,7 +173,8 @@ function UIMomentCard({
       return (
         <TierPicker
           data={moment.data}
-          onSelect={onChoice}
+          order={order}
+          onSelect={onSelection}
           disabled={disabled}
         />
       );
@@ -114,7 +183,7 @@ function UIMomentCard({
         <DatePicker
           data={moment.data}
           availability={availability ?? []}
-          onSelect={onChoice}
+          onSelect={onCustomerSelection}
           disabled={disabled}
         />
       );
@@ -123,6 +192,7 @@ function UIMomentCard({
         <ContactForm
           data={moment.data}
           onSubmit={onChoice}
+          onContactData={onContactData}
           disabled={disabled}
         />
       );
@@ -130,7 +200,8 @@ function UIMomentCard({
       return (
         <RecurrencePicker
           data={moment.data}
-          onSelect={onChoice}
+          order={order}
+          onSelect={onSelection}
           disabled={disabled}
         />
       );
@@ -138,12 +209,28 @@ function UIMomentCard({
       return (
         <AddonPicker
           data={moment.data}
-          onSelect={onChoice}
+          onSelect={onSelection}
+          disabled={disabled}
+        />
+      );
+    case "order_builder":
+      return (
+        <OrderBuilder
+          data={moment.data}
+          order={order}
+          onSelect={onSelection}
+          onOrderChange={onOrderChange}
           disabled={disabled}
         />
       );
     case "booking_handoff":
-      return <BookingHandoff data={moment.data} />;
+      return (
+        <BookingHandoff
+          data={moment.data}
+          order={order}
+          customer={customer}
+        />
+      );
   }
 }
 

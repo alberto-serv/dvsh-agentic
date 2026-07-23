@@ -3,12 +3,15 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { AgentSlot, DatePickerData } from "@/lib/types";
+import type { AgentSlot, CheckoutOrder, DatePickerData } from "@/lib/types";
 
 interface Props {
   data: DatePickerData;
   availability: AgentSlot[];
-  onSelect: (label: string) => void;
+  onSelect: (
+    update: Partial<CheckoutOrder["customer"]>,
+    humanLabel: string,
+  ) => void;
   disabled?: boolean;
 }
 
@@ -157,7 +160,10 @@ export function DatePicker({ data, availability, onSelect, disabled }: Props) {
   function handlePickSlot(slot: AgentSlot) {
     if (disabled || pickedSlotStart) return;
     setPickedSlotStart(slot.start);
-    onSelect(`I'll take ${formatLongLabel(slot)}`);
+    onSelect(
+      { preferredDate: slot.start, timeWindow: formatTimeRange(slot) },
+      formatLongLabel(slot),
+    );
   }
 
   return (

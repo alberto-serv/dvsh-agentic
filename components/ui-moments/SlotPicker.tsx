@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import type { SlotPickerData } from "@/lib/types";
+import type { CheckoutOrder, SlotPickerData } from "@/lib/types";
 
 interface Props {
   data: SlotPickerData;
-  onSelect: (label: string) => void;
+  onSelect: (
+    update: Partial<CheckoutOrder["customer"]>,
+    humanLabel: string,
+  ) => void;
   disabled?: boolean;
 }
 
@@ -16,7 +19,11 @@ export function SlotPicker({ data, onSelect, disabled }: Props) {
   function handlePick(slot: SlotPickerData["slots"][number]) {
     if (disabled || selectedId) return;
     setSelectedId(slot.id);
-    onSelect(`I'll take ${slot.label}`);
+    const [, timePart] = slot.label.split(" · ");
+    onSelect(
+      { preferredDate: slot.start, timeWindow: timePart ?? slot.label },
+      slot.label,
+    );
   }
 
   return (

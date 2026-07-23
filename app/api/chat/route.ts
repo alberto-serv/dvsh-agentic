@@ -6,6 +6,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MODEL = "claude-sonnet-4-6";
+// Kept at 2048 — comfortably headroom now that the booking_handoff no longer
+// carries the order blob (the client owns the order and writes it at checkout),
+// so responses run much smaller than when the model reconstructed it.
 const MAX_TOKENS = 2048;
 
 let cachedSystemTemplate: string | null = null;

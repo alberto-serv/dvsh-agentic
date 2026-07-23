@@ -8,11 +8,12 @@ import {
   isValidEmail,
   isValidPhone,
 } from "@/lib/utils";
-import type { ContactFormData } from "@/lib/types";
+import type { CheckoutOrder, ContactFormData } from "@/lib/types";
 
 interface Props {
   data: ContactFormData;
   onSubmit: (label: string) => void;
+  onContactData?: (update: Partial<CheckoutOrder["customer"]>) => void;
   disabled?: boolean;
 }
 
@@ -32,7 +33,7 @@ interface Errors {
 
 const INITIAL: Fields = { name: "", email: "", phone: "", address: "" };
 
-export function ContactForm({ data, onSubmit, disabled }: Props) {
+export function ContactForm({ data, onSubmit, onContactData, disabled }: Props) {
   const [fields, setFields] = useState<Fields>(INITIAL);
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
@@ -64,6 +65,12 @@ export function ContactForm({ data, onSubmit, disabled }: Props) {
       return;
     }
     setSubmitted(true);
+    onContactData?.({
+      name: fields.name.trim(),
+      email: fields.email.trim(),
+      phone: formatPhone(fields.phone),
+      address: fields.address.trim(),
+    });
     const message = [
       "Here are my details:",
       `Name: ${fields.name.trim()}`,
