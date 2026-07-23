@@ -4,11 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ShieldCheck, Phone, CalendarClock } from "lucide-react";
 import { cn, formatUSD } from "@/lib/utils";
-import {
-  computeOrderPricing,
-  getServiceBasePrice,
-  SERVICE_CATALOG,
-} from "@/lib/pricing";
+import { computeOrderPricing, SERVICE_CATALOG } from "@/lib/pricing";
 import type { BookingHandoffData, CheckoutOrder } from "@/lib/types";
 
 const ESTIMATE_KEY = "estimateData";
@@ -187,9 +183,6 @@ export function BookingHandoff({ data, order, customer }: Props) {
             ? SERVICE_CATALOG.checkoutAddOns.find((a) => a.id === line.addonId)
                 ?.priceLabel
             : undefined;
-          const amount = line.serviceId
-            ? getServiceBasePrice(order, line.serviceId)
-            : line.amount;
           return (
             <li
               key={i}
@@ -204,19 +197,11 @@ export function BookingHandoff({ data, order, customer }: Props) {
                 )}
               </span>
               <span className="shrink-0 font-mono tabular-nums">
-                {priceLabel ?? formatUSD(amount)}
+                {priceLabel ?? formatUSD(line.amount)}
               </span>
             </li>
           );
         })}
-        {pricing.subscriptionDiscount > 0 && (
-          <li className="flex items-start justify-between gap-4 pl-3 text-emerald-600">
-            <span className="leading-snug">Annual plan (15% off)</span>
-            <span className="shrink-0 font-mono tabular-nums">
-              −{formatUSD(pricing.subscriptionDiscount)}
-            </span>
-          </li>
-        )}
       </ul>
 
       <div className="mt-3 flex items-baseline justify-between border-t border-border pt-3">
@@ -227,6 +212,11 @@ export function BookingHandoff({ data, order, customer }: Props) {
           {formatUSD(subtotal)}
         </span>
       </div>
+      {pricing.subscriptionDiscount > 0 && (
+        <p className="mt-1 text-xs font-medium text-emerald-600">
+          Annual plan — 15% off, save {formatUSD(pricing.subscriptionDiscount)}/yr
+        </p>
+      )}
       {pricing.notes.map((note, i) => (
         <p key={i} className="mt-1 text-xs text-muted-foreground">
           {note}

@@ -155,6 +155,9 @@ export interface OrderBuilderData {
   access_options?: TierOption[];
   // AC Duct Cleaning and the Whole-Home Air Package scale with duct count.
   needs_duct_count?: boolean;
+  // Seeds the duct stepper when the customer already stated a count (a fact, not
+  // a preference). Falls back to the default when omitted.
+  duct_count?: number;
   // The checkout add-ons offered alongside a dryer-vent service.
   addons?: AddonOption[];
   // Flat-price services the model has already decided to bundle in (e.g. coil

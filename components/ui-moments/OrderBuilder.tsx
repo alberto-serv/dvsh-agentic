@@ -60,7 +60,11 @@ export function OrderBuilder({
   const [access, setAccess] = useState<string | undefined>(
     data.access_options?.[0]?.key,
   );
-  const [ductCount, setDuctCount] = useState<number>(DEFAULT_DUCTS);
+  const [ductCount, setDuctCount] = useState<number>(
+    data.duct_count && data.duct_count >= MIN_DUCTS
+      ? Math.round(data.duct_count)
+      : DEFAULT_DUCTS,
+  );
   const [addonKeys, setAddonKeys] = useState<Set<string>>(new Set());
   const [annual, setAnnual] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -415,6 +419,11 @@ export function OrderBuilder({
             </span>
           </div>
 
+          {pricing.subscriptionDiscount > 0 && (
+            <p className="mt-1 text-xs font-medium text-emerald-600">
+              Annual plan — 15% off, save {formatUSD(pricing.subscriptionDiscount)}/yr
+            </p>
+          )}
           {pricing.notes.map((note, i) => (
             <p key={i} className="mt-1 text-xs text-muted-foreground">
               {note}

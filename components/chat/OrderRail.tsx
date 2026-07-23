@@ -5,7 +5,6 @@ import { CalendarClock, ChevronUp, Receipt, X } from "lucide-react";
 import { cn, formatUSD } from "@/lib/utils";
 import {
   computeOrderPricing,
-  getServiceBasePrice,
   SERVICE_CATALOG,
   type OrderPricingLine,
 } from "@/lib/pricing";
@@ -85,9 +84,7 @@ function RailBody({ order, customer, onSelection, disabled }: RailProps) {
             ? SERVICE_CATALOG.checkoutAddOns.find((a) => a.id === line.addonId)
                 ?.priceLabel
             : undefined;
-          const amount = line.serviceId
-            ? getServiceBasePrice(order, line.serviceId)
-            : line.amount;
+          const amount = line.amount;
           return (
             <li
               key={i}
@@ -124,15 +121,6 @@ function RailBody({ order, customer, onSelection, disabled }: RailProps) {
         })}
       </ul>
 
-      {pricing.subscriptionDiscount > 0 && (
-        <div className="flex items-center justify-between text-sm text-emerald-600">
-          <span>Annual plan (15% off)</span>
-          <span className="font-mono tabular-nums">
-            −{formatUSD(pricing.subscriptionDiscount)}
-          </span>
-        </div>
-      )}
-
       <div className="border-t border-border pt-3">
         <div className="flex items-baseline justify-between">
           <span className="font-heading text-sm font-semibold uppercase tracking-wider text-foreground">
@@ -142,6 +130,11 @@ function RailBody({ order, customer, onSelection, disabled }: RailProps) {
             {formatUSD(subtotal)}
           </span>
         </div>
+        {pricing.subscriptionDiscount > 0 && (
+          <p className="mt-1 text-xs font-medium text-emerald-600">
+            Annual plan — 15% off, save {formatUSD(pricing.subscriptionDiscount)}/yr
+          </p>
+        )}
         {pricing.notes.map((note, i) => (
           <p key={i} className="mt-1 text-xs text-muted-foreground">
             {note}
